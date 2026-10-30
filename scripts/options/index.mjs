@@ -4,6 +4,7 @@ import disableVision from "./disable-vision.mjs";
 import padding from "./padding.mjs";
 import sceneFolder, { NEW_FOLDER } from "./scene-folder.mjs";
 import sceneTransition from "./scene-transition.mjs";
+import showInNavigation from "./show-in-navigation.mjs";
 
 /**
  * Every option shown in the right-hand panel, in display order. To add one:
@@ -12,7 +13,15 @@ import sceneTransition from "./scene-transition.mjs";
  * lang/en.json. Types are "boolean", "number" (with min, max, step), "select"
  * (with choices(env)) and "folder". An option may also have warning(env).
  */
-export const OPTIONS = [disableVision, disableGrid, autoBackgroundColor, sceneTransition, padding, sceneFolder];
+export const OPTIONS = [
+  disableVision,
+  disableGrid,
+  autoBackgroundColor,
+  sceneTransition,
+  padding,
+  sceneFolder,
+  showInNavigation
+];
 
 /** Option values on first use. env is passed to defaults that depend on Foundry's config. */
 export function defaultValues(env) {

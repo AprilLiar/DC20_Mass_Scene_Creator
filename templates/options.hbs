@@ -5,16 +5,16 @@
   <div class="ms-option">
     {{#if isBoolean}}
     <label class="ms-check">
-      <input type="checkbox" data-option="{{id}}" {{#if checked}}checked{{/if}}>
+      <input type="checkbox" data-option="{{id}}" {{#if checked}}checked{{/if}} {{#if disabled}}disabled{{/if}}>
       <span>{{label}}</span>
     </label>
     {{else}}
     <label class="ms-label" for="ms-option-{{id}}">{{label}}</label>
     {{#if isNumber}}
     <input id="ms-option-{{id}}" type="number" data-option="{{id}}" value="{{value}}"
-           min="{{min}}" max="{{max}}" step="{{step}}">
+           min="{{min}}" max="{{max}}" step="{{step}}" {{#if disabled}}disabled{{/if}}>
     {{else}}
-    <select id="ms-option-{{id}}" data-option="{{id}}">
+    <select id="ms-option-{{id}}" data-option="{{id}}" {{#if disabled}}disabled{{/if}}>
       {{#each choices}}
       <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
       {{/each}}
@@ -22,7 +22,7 @@
     {{/if}}
     {{#if isFolder}}
     <input type="text" class="ms-new-folder" data-new-folder-name value="{{newFolderName}}"
-           placeholder="{{localize "MULTISCENE.Options.SceneFolder.NewName"}}" {{#unless showNewName}}hidden{{/unless}}>
+           placeholder="{{localize "MULTISCENE.Options.SceneFolder.NewName"}}" {{#unless showNewName}}hidden{{/unless}} {{#if disabled}}disabled{{/if}}>
     {{/if}}
     {{/if}}
     <p class="ms-hint">{{hint}}</p>
@@ -32,5 +32,25 @@
   </div>
   {{/each}}
 
-  {{!-- The Create button and progress report: step 6. --}}
+  <div class="ms-run">
+    <button type="button" class="ms-create" data-action="createScenes" {{#unless run.canCreate}}disabled{{/unless}}>
+      <i class="fa-solid fa-wand-magic-sparkles"></i> {{run.createLabel}}
+    </button>
+
+    {{#if run.running}}
+    <progress class="ms-progress" max="{{run.total}}" value="{{run.done}}"></progress>
+    <p class="ms-progress-text">{{run.progressLabel}}</p>
+    {{/if}}
+
+    {{#if run.failures.length}}
+    <div class="ms-failures">
+      <h3>{{localize "MULTISCENE.Run.FailedTitle"}}</h3>
+      <ul>
+        {{#each run.failures}}
+        <li><strong>{{name}}</strong>: {{reason}}</li>
+        {{/each}}
+      </ul>
+    </div>
+    {{/if}}
+  </div>
 </aside>

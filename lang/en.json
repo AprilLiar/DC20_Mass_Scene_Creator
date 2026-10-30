@@ -44,7 +44,24 @@
         "None": "No folder",
         "New": "New folder...",
         "NewName": "New folder name"
+      },
+      "ShowInNavigation": {
+        "Label": "Show in navigation bar?",
+        "Hint": "Whether the created Scenes appear in the top navigation bar."
       }
+    },
+    "Run": {
+      "Create": "Create Scenes ({count})",
+      "Creating": "Creating Scenes...",
+      "Progress": "{done} of {total} done",
+      "FailedTitle": "These Scenes could not be created",
+      "Done": "{count} Scene(s) created.",
+      "Partial": "{created} of {total} Scene(s) created, {failed} failed. The failed ones are still in the list.",
+      "Stopped": "Stopped. {count} Scene(s) were created.",
+      "NoRows": "Add at least one file first.",
+      "FolderNameRequired": "Enter a name for the new Scene folder.",
+      "FatalError": "Multi-Scene could not create the Scenes: {reason}",
+      "CouldNotRead": "The file could not be opened as a picture or video, so its size is unknown."
     }
   }
 }

@@ -1,9 +1,11 @@
 import { collectDropped, itemsFromFileList } from "./file-intake.mjs";
+import { createFoundryDeps } from "./foundry-deps.mjs";
 import { acceptAttribute, foundryMediaKinds } from "./media-types.mjs";
 import { buildFields } from "./option-fields.mjs";
 import { OPTIONS, loadValues, persistableValues } from "./options/index.mjs";
 import { NEW_FOLDER } from "./options/scene-folder.mjs";
 import { addItems } from "./rows.mjs";
+import { checkRun, createScenes } from "./scene-builder.mjs";
 import { loadSavedOptions, saveOptions } from "./settings.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -23,7 +25,8 @@ export class MultiSceneApp extends HandlebarsApplicationMixin(ApplicationV2) {
       closeWindow: MultiSceneApp.#onCloseWindow,
       browseFiles: MultiSceneApp.#onBrowseFiles,
       browseFolder: MultiSceneApp.#onBrowseFolder,
-      removeRow: MultiSceneApp.#onRemoveRow
+      removeRow: MultiSceneApp.#onRemoveRow,
+      createScenes: MultiSceneApp.#onCreate
     }
   };
 
@@ -41,6 +44,10 @@ export class MultiSceneApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #dragDepth = 0;
   #values = null;
   #newFolderName = "";
+  #run = { running: false, done: 0, total: 0, failures: [] };
+  #closing = false;
+  #closed = false;
+  #renderQueue = Promise.resolve();
 
   /** Open the window, or bring it to the front if it is already open. */
   static open() {
@@ -70,7 +77,7 @@ export class MultiSceneApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const context = await super._prepareContext(options);
     const env = this.#optionsEnv();
     this.#values ??= loadValues(loadSavedOptions(), env);
-    context.fields = buildFields(OPTIONS, this.#values, env, this.#newFolderName);
+    context.fields = buildFields(OPTIONS, this.#values, env, this.#newFolderName, this.#run.running);
     context.rows = this.#rows.map((row) => ({
       id: row.id,
       name: row.name,
@@ -80,6 +87,7 @@ export class MultiSceneApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }));
     context.hasRows = this.#rows.length > 0;
     context.countLabel = game.i18n.format("MULTISCENE.Intake.Count", { count: this.#rows.length });
+    context.run = this.#runContext();
     return context;
   }
 
@@ -106,12 +114,32 @@ export class MultiSceneApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await super._onRender(context, options);
     // Re-rendering the file list replaces its scroll container, so put the scroll position back.
     const main = this.element.querySelector(".ms-main");
-    if (main) main.scrollTop = this.#scrollTop;
+    if (main) {
+      main.scrollTop = this.#scrollTop;
+      main.inert = this.#run.running; // no editing, dropping or removing while Scenes are created
+    }
+    this.element.classList.toggle("is-running", this.#run.running);
+  }
+
+  /**
+   * Re-render parts one after another, and not at all once the window is
+   * closing, so a late progress update can never race with the close.
+   */
+  #refresh(parts) {
+    this.#renderQueue = this.#renderQueue.then(() => (this.#closing || this.#closed ? undefined : this.render({ parts })));
+    return this.#renderQueue;
+  }
+
+  /** @override */
+  async _preClose(options) {
+    this.#closing = true; // a run in progress stops before its next row
+    await super._preClose(options);
   }
 
   /** @override */
   _onClose(options) {
     super._onClose(options);
+    this.#closed = true;
     for (const row of this.#rows) URL.revokeObjectURL(row.previewUrl);
     this.#rows = [];
   }
@@ -131,7 +159,7 @@ export class MultiSceneApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (result.duplicates) {
       ui.notifications.info(game.i18n.format("MULTISCENE.Intake.Duplicates", { count: result.duplicates }));
     }
-    await this.render({ parts: ["main"] });
+    await this.#refresh(["main", "options"]); // the options panel holds the Create button and its count
   }
 
   #pick({ directory }) {
@@ -160,11 +188,92 @@ export class MultiSceneApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!row) return;
     URL.revokeObjectURL(row.previewUrl);
     this.#rows = this.#rows.filter((candidate) => candidate !== row);
-    return this.render({ parts: ["main"] });
+    return this.#refresh(["main", "options"]);
   }
 
   static #onCloseWindow() {
     return this.close();
+  }
+
+  /* ---------------------------------------------------------------- */
+  /*  Creating the Scenes                                              */
+  /* ---------------------------------------------------------------- */
+
+  /** What the Create button and the progress area of the options panel show. */
+  #runContext() {
+    const { running, done, total, failures } = this.#run;
+    return {
+      running,
+      canCreate: !running && this.#rows.length > 0,
+      createLabel: running
+        ? game.i18n.localize("MULTISCENE.Run.Creating")
+        : game.i18n.format("MULTISCENE.Run.Create", { count: this.#rows.length }),
+      progressLabel: game.i18n.format("MULTISCENE.Run.Progress", { done, total }),
+      done,
+      total,
+      failures
+    };
+  }
+
+  static async #onCreate() {
+    if (this.#run.running) return;
+    const problem = checkRun({ rows: this.#rows, values: this.#values, newFolderName: this.#newFolderName });
+    if (problem) return ui.notifications.warn(game.i18n.localize(problem));
+
+    const rows = [...this.#rows];
+    this.#run = { running: true, done: 0, total: rows.length, failures: [] };
+    await this.#refresh(["main", "options"]);
+
+    let outcome;
+    try {
+      outcome = await createScenes(
+        {
+          rows,
+          values: this.#values,
+          newFolderName: this.#newFolderName,
+          shouldStop: () => this.#closing || this.#closed,
+          onProgress: ({ done, total }) => {
+            this.#run = { ...this.#run, done, total };
+            this.#refresh(["options"]);
+          }
+        },
+        createFoundryDeps()
+      );
+    } catch (error) {
+      console.error("multi-scene | creating the Scenes failed", error);
+      ui.notifications.error(game.i18n.format("MULTISCENE.Run.FatalError", { reason: error?.message ?? String(error) }));
+      this.#run = { running: false, done: 0, total: 0, failures: [] };
+      await this.#refresh(["main", "options"]);
+      return;
+    }
+
+    const { created, failures, stopped } = outcome;
+    if (this.#closing || this.#closed) {
+      const message = stopped ? "MULTISCENE.Run.Stopped" : "MULTISCENE.Run.Done";
+      return ui.notifications.info(game.i18n.format(message, { count: created.length }));
+    }
+
+    // Rows that became Scenes leave the list; failed rows stay so they can be retried.
+    const createdRows = new Set(created.map((entry) => entry.row));
+    for (const row of createdRows) URL.revokeObjectURL(row.previewUrl);
+    this.#rows = this.#rows.filter((row) => !createdRows.has(row));
+
+    if (failures.length === 0) {
+      ui.notifications.info(game.i18n.format("MULTISCENE.Run.Done", { count: created.length }));
+      await this.#renderQueue;
+      return this.close();
+    }
+
+    ui.notifications.warn(
+      game.i18n.format("MULTISCENE.Run.Partial", { created: created.length, total: rows.length, failed: failures.length })
+    );
+    this.#run = {
+      running: false,
+      done: rows.length,
+      total: rows.length,
+      failures: failures.map(({ row, reason }) => ({ name: row.name, reason }))
+    };
+    await this.#refresh(["main", "options"]);
   }
 
   /* ---------------------------------------------------------------- */
@@ -249,6 +358,7 @@ export class MultiSceneApp extends HandlebarsApplicationMixin(ApplicationV2) {
     event.stopPropagation();
     this.#dragDepth = 0;
     this.#setDragging(false);
+    if (this.#run.running) return;
     collectDropped(event.dataTransfer)
       .then((items) => this.#addItems(items))
       .catch((error) => {

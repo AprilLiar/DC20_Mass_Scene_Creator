@@ -42,7 +42,8 @@ test("defaults match the agreed design", () => {
     autoBackgroundColor: true,
     sceneTransition: "wind",
     padding: 0,
-    sceneFolder: ""
+    sceneFolder: "",
+    showInNavigation: false
   });
 });
 
@@ -141,6 +142,15 @@ test("the folder option sets the folder only when one is chosen", () => {
   assert.equal("folder" in none, false);
 });
 
+test("the navigation option always writes an explicit value", () => {
+  const shown = {};
+  byId.showInNavigation.apply(shown, true);
+  assert.equal(shown.navigation, true);
+  const hidden = {};
+  byId.showInNavigation.apply(hidden, false);
+  assert.equal(hidden.navigation, false);
+});
+
 test("applyOptions runs every option on the Scene data", async () => {
   const sceneData = { name: "Test" };
   const values = { ...defaultValues(env), sceneFolder: "f1", padding: 10 };
@@ -152,6 +162,7 @@ test("applyOptions runs every option on the Scene data", async () => {
     backgroundColor: "#102030",
     transition: { type: "wind" },
     padding: 0.1,
-    folder: "f1"
+    folder: "f1",
+    navigation: false
   });
 });

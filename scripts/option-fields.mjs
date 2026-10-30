@@ -3,9 +3,10 @@ import { NEW_FOLDER } from "./options/scene-folder.mjs";
 /**
  * What the options template needs for each option: localized text, the current
  * value, and for dropdowns the choices with the current one marked.
- * newFolderName is the text typed for the "New folder..." entry.
+ * newFolderName is the text typed for the "New folder..." entry; disabled
+ * greys the controls out while Scenes are being created.
  */
-export function buildFields(options, values, env, newFolderName = "") {
+export function buildFields(options, values, env, newFolderName = "", disabled = false) {
   return options.map((option) => {
     const value = values[option.id];
     const choices = option.choices?.(env).map((choice) => ({ ...choice, selected: choice.value === value }));
@@ -25,7 +26,8 @@ export function buildFields(options, values, env, newFolderName = "") {
       step: option.step,
       choices,
       showNewName: option.type === "folder" && value === NEW_FOLDER,
-      newFolderName
+      newFolderName,
+      disabled
     };
   });
 }

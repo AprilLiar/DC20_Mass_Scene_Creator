@@ -39,7 +39,7 @@ test("buildFolderChoices treats a folder with a missing parent as top level and 
 });
 
 test("loadValues keeps valid saved values", () => {
-  const saved = { disableVision: false, disableGrid: false, autoBackgroundColor: false, sceneTransition: "swirl", padding: 15, sceneFolder: "f2" };
+  const saved = { disableVision: false, disableGrid: false, autoBackgroundColor: false, sceneTransition: "swirl", padding: 15, sceneFolder: "f2", showInNavigation: true };
   assert.deepEqual(loadValues(saved, env), saved);
 });
 
@@ -66,6 +66,8 @@ test("buildFields describes every option for the template", () => {
 
   const vision = fields.find((field) => field.id === "disableVision");
   assert.deepEqual([vision.isBoolean, vision.checked, vision.label], [true, true, "MULTISCENE.Options.DisableVision.Label"]);
+  assert.equal(vision.disabled, false);
+  assert.equal(buildFields(OPTIONS, values, env, "", true)[0].disabled, true);
 
   const transition = fields.find((field) => field.id === "sceneTransition");
   assert.equal(transition.isSelect, true);

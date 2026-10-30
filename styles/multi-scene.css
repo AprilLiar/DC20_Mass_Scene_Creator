@@ -241,3 +241,52 @@
   font-size: 0.85rem;
   color: #f0b44c;
 }
+
+/* Create button, progress and failure report */
+.multi-scene-app .ms-run {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--ms-border);
+}
+
+.multi-scene-app .ms-create {
+  width: 100%;
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.multi-scene-app .ms-progress {
+  display: block;
+  width: 100%;
+  margin-top: 0.75rem;
+}
+
+.multi-scene-app .ms-progress-text {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: var(--ms-muted);
+}
+
+.multi-scene-app .ms-failures {
+  margin-top: 1rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #a14b4b;
+  border-radius: 6px;
+}
+
+.multi-scene-app .ms-failures h3 {
+  margin: 0 0 0.35rem;
+  border: none;
+  font-size: 1rem;
+  color: #f08a8a;
+}
+
+.multi-scene-app .ms-failures ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.9rem;
+}
+
+.multi-scene-app.is-running .ms-main {
+  opacity: 0.6;
+}
