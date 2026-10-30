@@ -1,0 +1,10 @@
+{
+  "name": "multi-scene",
+  "private": true,
+  "type": "module",
+  "description": "Foundry VTT module that creates many Scenes at once. Not published to npm; this file only configures local tests.",
+  "scripts": {
+    "test": "node --test"
+  },
+  "license": "MIT"
+}
