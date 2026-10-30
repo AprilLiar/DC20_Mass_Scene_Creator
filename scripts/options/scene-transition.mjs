@@ -30,6 +30,10 @@ export default {
   /** env: { sceneTransitions, localize, foundryDefaultId } */
   choices: (env) => buildTransitionChoices(env.sceneTransitions, env.localize),
   default: (env) => pickDefaultTransition(buildTransitionChoices(env.sceneTransitions, env.localize), env.foundryDefaultId).value,
+  warning: (env) =>
+    pickDefaultTransition(buildTransitionChoices(env.sceneTransitions, env.localize), env.foundryDefaultId).found
+      ? ""
+      : env.localize("MULTISCENE.Options.SceneTransition.WindMissing"),
   apply(sceneData, value) {
     if (value) sceneData.transition = { ...sceneData.transition, type: value };
   }

@@ -191,3 +191,53 @@
   padding: 0;
   line-height: 1;
 }
+
+/* Options panel */
+.multi-scene-app .ms-option {
+  margin-bottom: 1.25rem;
+}
+
+.multi-scene-app .ms-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: bold;
+}
+
+.multi-scene-app .ms-check input {
+  flex: none;
+  margin: 0;
+}
+
+.multi-scene-app .ms-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: bold;
+}
+
+.multi-scene-app .ms-option select,
+.multi-scene-app .ms-option input[type="number"],
+.multi-scene-app .ms-option input[type="text"] {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.multi-scene-app .ms-new-folder {
+  margin-top: 0.35rem;
+}
+
+.multi-scene-app .ms-new-folder[hidden] {
+  display: none;
+}
+
+.multi-scene-app .ms-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: var(--ms-muted);
+}
+
+.multi-scene-app .ms-warning {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: #f0b44c;
+}

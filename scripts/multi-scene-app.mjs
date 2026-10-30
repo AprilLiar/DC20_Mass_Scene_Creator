@@ -1,6 +1,10 @@
 import { collectDropped, itemsFromFileList } from "./file-intake.mjs";
 import { acceptAttribute, foundryMediaKinds } from "./media-types.mjs";
+import { buildFields } from "./option-fields.mjs";
+import { OPTIONS, loadValues, persistableValues } from "./options/index.mjs";
+import { NEW_FOLDER } from "./options/scene-folder.mjs";
 import { addItems } from "./rows.mjs";
+import { loadSavedOptions, saveOptions } from "./settings.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const TEMPLATES = "modules/multi-scene/templates";
@@ -35,6 +39,8 @@ export class MultiSceneApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #nextId = 0;
   #scrollTop = 0;
   #dragDepth = 0;
+  #values = null;
+  #newFolderName = "";
 
   /** Open the window, or bring it to the front if it is already open. */
   static open() {
@@ -47,9 +53,24 @@ export class MultiSceneApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return MultiSceneApp.#current;
   }
 
+  /** What the option definitions need to know about this Foundry world. */
+  #optionsEnv() {
+    return {
+      localize: (key) => game.i18n.localize(key),
+      sceneTransitions: CONFIG.Canvas.sceneTransitions,
+      foundryDefaultId: "fade",
+      folders: game.folders
+        .filter((folder) => folder.type === "Scene")
+        .map((folder) => ({ id: folder.id, name: folder.name, parent: folder.folder?.id ?? null }))
+    };
+  }
+
   /** @override */
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
+    const env = this.#optionsEnv();
+    this.#values ??= loadValues(loadSavedOptions(), env);
+    context.fields = buildFields(OPTIONS, this.#values, env, this.#newFolderName);
     context.rows = this.#rows.map((row) => ({
       id: row.id,
       name: row.name,
@@ -72,6 +93,7 @@ export class MultiSceneApp extends HandlebarsApplicationMixin(ApplicationV2) {
     root.addEventListener("dragleave", (event) => this.#onDragLeave(event));
     root.addEventListener("drop", (event) => this.#onDrop(event));
     root.addEventListener("input", (event) => this.#onInput(event));
+    root.addEventListener("change", (event) => this.#onOptionChange(event));
     root.addEventListener("scroll", (event) => this.#onScroll(event), true);
     root.addEventListener("mouseover", (event) => this.#onHover(event, true));
     root.addEventListener("mouseout", (event) => this.#onHover(event, false));
@@ -151,9 +173,35 @@ export class MultiSceneApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   #onInput(event) {
     const input = event.target;
-    if (!input.matches?.(".ms-name")) return;
-    const row = this.#rows.find((candidate) => candidate.id === Number(input.dataset.rowId));
-    if (row) row.name = input.value;
+    if (input.matches?.(".ms-name")) {
+      const row = this.#rows.find((candidate) => candidate.id === Number(input.dataset.rowId));
+      if (row) row.name = input.value;
+    } else if (input.matches?.("[data-new-folder-name]")) {
+      this.#newFolderName = input.value;
+    }
+  }
+
+  /** A checkbox, number field or dropdown of the options panel changed: remember the value and save it. */
+  #onOptionChange(event) {
+    const input = event.target;
+    const option = OPTIONS.find((candidate) => candidate.id === input.dataset?.option);
+    if (!option) return;
+
+    let value;
+    if (option.type === "boolean") value = input.checked;
+    else if (option.type === "number") {
+      const number = Number(input.value);
+      value = Number.isFinite(number) ? Math.min(Math.max(number, option.min), option.max) : option.default;
+      input.value = value;
+    } else value = input.value;
+    this.#values[option.id] = value;
+
+    if (option.type === "folder") {
+      this.element.querySelector("[data-new-folder-name]").hidden = value !== NEW_FOLDER;
+    }
+    Promise.resolve(saveOptions(persistableValues(this.#values))).catch((error) =>
+      console.warn("multi-scene | could not save the options", error)
+    );
   }
 
   #onScroll(event) {

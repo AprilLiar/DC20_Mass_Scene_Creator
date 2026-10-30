@@ -1,4 +1,36 @@
 <aside class="ms-options">
   <h2>{{localize "MULTISCENE.Options.Title"}}</h2>
-  {{!-- Options and the Create button: steps 5 and 6. --}}
+
+  {{#each fields}}
+  <div class="ms-option">
+    {{#if isBoolean}}
+    <label class="ms-check">
+      <input type="checkbox" data-option="{{id}}" {{#if checked}}checked{{/if}}>
+      <span>{{label}}</span>
+    </label>
+    {{else}}
+    <label class="ms-label" for="ms-option-{{id}}">{{label}}</label>
+    {{#if isNumber}}
+    <input id="ms-option-{{id}}" type="number" data-option="{{id}}" value="{{value}}"
+           min="{{min}}" max="{{max}}" step="{{step}}">
+    {{else}}
+    <select id="ms-option-{{id}}" data-option="{{id}}">
+      {{#each choices}}
+      <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+      {{/each}}
+    </select>
+    {{/if}}
+    {{#if isFolder}}
+    <input type="text" class="ms-new-folder" data-new-folder-name value="{{newFolderName}}"
+           placeholder="{{localize "MULTISCENE.Options.SceneFolder.NewName"}}" {{#unless showNewName}}hidden{{/unless}}>
+    {{/if}}
+    {{/if}}
+    <p class="ms-hint">{{hint}}</p>
+    {{#if warning}}
+    <p class="ms-warning"><i class="fa-solid fa-triangle-exclamation"></i> {{warning}}</p>
+    {{/if}}
+  </div>
+  {{/each}}
+
+  {{!-- The Create button and progress report: step 6. --}}
 </aside>
