@@ -16,9 +16,6 @@
   "esmodules": [
     "scripts/main.mjs"
   ],
-  "styles": [
-    "styles/multi-scene.css"
-  ],
   "languages": [
     {
       "lang": "en",

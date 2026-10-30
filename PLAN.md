@@ -55,7 +55,7 @@ Options are registered in `scripts/options/index.mjs`; adding one means a new fi
 | Scene folder | folder | none | `folder` = existing Scene folder, or a new one created first. |
 | Show in navigation bar? | boolean | off | `navigation` written explicitly, so batch-created Scenes stay out of the top bar by default. |
 
-Every Scene also gets `name`, `levels: [{ background: { src } }]`, and `width` / `height` from the picture's pixel size.
+Every Scene also gets `name`, `levels: [{ name, background: { src } }]` and `width` / `height` from the picture's pixel size. Foundry v14 rejects a Level without a name (found in the first real test), so the Level is named like the Scene.
 
 ## 4. Foundry v14 research notes (verified against the official v14 API docs)
 
@@ -67,7 +67,7 @@ Scene data (`interfaces/foundry.documents.types.SceneData.html`):
 - `CONST.GRID_TYPES`: `GRIDLESS: 0, SQUARE: 1, HEXODDR: 2, HEXEVENR: 3, HEXODDQ: 4, HEXEVENQ: 5`.
 
 Background image (Levels):
-- `Scene#background` is gone; a Level carries the image: `LevelData.background` is `{ src, tint, alphaThreshold } & { color: number }`. Level fields: `_id`, `name`, `sort`, `elevation {bottom, top}`, `background`, `foreground`, `fog`, `textures`, `visibility`. A third-party PR confirms creating a Scene with `levels: [{ background: { src } }]` and that the first Level becomes the initial Level. https://github.com/JohnMPrince/deadsuns-adaptation-vtt/pull/21
+- `Scene#background` is gone; a Level carries the image: `LevelData.background` is `{ src, tint, alphaThreshold } & { color: number }`. Level fields: `_id`, `name`, `sort`, `elevation {bottom, top}`, `background`, `foreground`, `fog`, `textures`, `visibility`. A third-party PR confirms creating a Scene with one Level holding `background.src` and that the first Level becomes the initial Level. A real v14 world additionally requires `name` on every Level. https://github.com/JohnMPrince/deadsuns-adaptation-vtt/pull/21
 - `Scene#createThumbnail({ format, width, height, quality, level })` returns `{ thumb, ... }`, defaults to the initial level, 300x100 webp.
 - `Scene#getDimensions()` applies padding and rounds to whole grid spaces (2x grid size).
 
@@ -101,7 +101,7 @@ These are covered step by step in [TESTING.md](TESTING.md). In short:
 
 1. DOM of the Scenes tab header. The button is inserted after `[data-action="createEntry"]`, falling back to the header and then the top of the tab.
 2. Exact shape of the `FilePicker.upload` response (the code uses `response.path`, and builds the path from folder and name if it is missing).
-3. Whether `Scene.create` with `levels: [{ background: { src } }]` plus explicit `width` / `height` produces a correct Scene, and whether Foundry makes the thumbnail itself (the code fills it in when missing).
+3. Whether `Scene.create` with `levels: [{ name, background: { src } }]` plus explicit `width` / `height` produces a correct Scene, and whether Foundry makes the thumbnail itself (the code fills it in when missing).
 4. Whether the "Background Color" shown in the Scene configuration is `Scene.backgroundColor` (set by this module) or the Level's own background color.
 5. The internal id of the "Wind" transition (looked up at runtime by id or label).
 6. That the window opens at full viewport size and that the `render({ parts })` option re-renders only the named parts.
@@ -114,9 +114,10 @@ The mock-Foundry browser checks used during development only prove the module's 
 module.json                      manifest (version, manifest and download URLs are rewritten by the release workflow)
 LICENSE  README.md  PLAN.md  TESTING.md  package.json
 lang/en.json
-styles/multi-scene.css
+styles/multi-scene.css          loaded by scripts/styles.mjs (not listed in module.json, see below)
 templates/main.hbs options.hbs                  the two parts of the window (files, options)
-scripts/main.mjs                 init: settings, renderSceneDirectory hook
+scripts/main.mjs                 init: stylesheet, settings, renderSceneDirectory hook
+scripts/styles.mjs               adds the stylesheet with the module version in its URL
 scripts/scene-directory.mjs      the hook: builds the button
 scripts/button-placement.mjs     where the button goes (pure)
 scripts/multi-scene-app.mjs      the window: state, events, actions
@@ -162,7 +163,8 @@ Notes:
 - New batches are appended after existing rows; exact repeats are skipped.
 - Video previews show the first frame and play muted only while hovered (a long list of autoplaying videos would be too heavy).
 - Scenes are created one at a time (not in chunks) so each failure is reported for its own row.
-- Every created Scene gets one Level named by Foundry's defaults; the Level is not given a name.
+- Every created Scene gets one Level, named like the Scene.
+- The stylesheet is added by script with `?v=<module version>` instead of the manifest's `styles` entry: browsers kept serving the old file after an update (a v0.0.6 stylesheet broke the v0.0.7 window until a hard reload).
 - If the world folder is not writable (for example some hosted setups), the run stops with one clear error; no alternative storage is designed.
 - Per-user saved option values: "New folder..." is saved as "no folder"; a saved folder or transition that no longer exists falls back to the default.
 

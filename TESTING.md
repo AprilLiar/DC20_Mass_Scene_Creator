@@ -12,6 +12,8 @@ https://github.com/AprilLiar/DC20_Mass_Scene_Creator/releases/latest/download/mo
 
 or copy the repository contents into `Data/modules/multi-scene/`. Enable **Multi-Scene** in a world (any game system) and log in as Gamemaster.
 
+After updating the module to a new version, reload the world with a hard refresh once (Ctrl+Shift+R, or Ctrl+F5) so the browser drops old copies of the module files.
+
 Have a test folder ready with: a few images of different sizes, one sub-folder with more images, one video (webm or mp4), and one file that is not a picture (for example a .txt).
 
 ## 1. The button and the window

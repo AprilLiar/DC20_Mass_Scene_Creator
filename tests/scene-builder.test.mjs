@@ -53,7 +53,7 @@ test("buildSceneData has the name, a background Level, the media size and the op
   });
   assert.deepEqual(data, {
     name: "Inn",
-    levels: [{ background: { src: "uploads/inn.png" } }],
+    levels: [{ name: "Inn", background: { src: "uploads/inn.png" } }],
     width: 800,
     height: 600,
     tokenVision: false,
@@ -70,6 +70,17 @@ test("buildSceneData trims the name and falls back to the file name when it is e
   const context = { getDominantColor: async () => null };
   assert.equal((await buildSceneData(row("  Spaced  "), "p", media, values, context)).name, "Spaced");
   assert.equal((await buildSceneData(row("   ", "Maps/Dark_Forest.png"), "p", media, values, context)).name, "Dark Forest");
+});
+
+test("the background Level always has a name, the same as the Scene", async () => {
+  const media = { width: 1, height: 1 };
+  const context = { getDominantColor: async () => null };
+  for (const r of [row("Inn"), row("  Padded  "), row("   ", "Maps/Dark_Forest.png")]) {
+    const data = await buildSceneData(r, "p", media, values, context);
+    assert.equal(typeof data.levels[0].name, "string");
+    assert.ok(data.levels[0].name.length > 0);
+    assert.equal(data.levels[0].name, data.name);
+  }
 });
 
 test("createScenes makes one Scene per row, in order, with the color of each picture", async () => {

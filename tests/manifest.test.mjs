@@ -19,11 +19,7 @@ test("manifest targets Foundry v14 and is system agnostic", () => {
 });
 
 test("every file the manifest references exists", () => {
-  const paths = [
-    ...manifest.esmodules,
-    ...manifest.styles,
-    ...manifest.languages.map((language) => language.path)
-  ];
+  const paths = [...manifest.esmodules, ...manifest.languages.map((language) => language.path)];
   for (const path of paths) assert.ok(existsSync(new URL(path, root)), `missing file: ${path}`);
 });
 

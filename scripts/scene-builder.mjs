@@ -9,11 +9,16 @@ export function checkRun({ rows, values, newFolderName }) {
   return null;
 }
 
-/** The data of one Scene: name, background Level, size, then everything the options add. */
+/**
+ * The data of one Scene: name, one Level holding the background (Foundry
+ * requires every Level to have a name, so it gets the Scene's name), size, then
+ * everything the options add.
+ */
 export async function buildSceneData(row, path, media, values, context) {
+  const name = row.name.trim() || prettifyName(row.path);
   const sceneData = {
-    name: row.name.trim() || prettifyName(row.path),
-    levels: [{ background: { src: path } }],
+    name,
+    levels: [{ name, background: { src: path } }],
     width: media.width,
     height: media.height
   };
