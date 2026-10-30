@@ -43,7 +43,7 @@ Have a test folder ready with: a few images of different sizes, one sub-folder w
 14. Open one Scene's configuration and check:
     - Token Vision is unchecked.
     - Grid type is Gridless.
-    - The background color is not the default grey and matches the picture's main color. Note which field shows it (Scene-level Background Color, or inside Levels).
+    - The background color of the Level (Levels tab) is not the default grey and matches the picture's main color.
     - Transition type is Wind.
     - Padding is 0, and the Scene dimensions equal the picture size.
     - There is one Level with the picture as its background.

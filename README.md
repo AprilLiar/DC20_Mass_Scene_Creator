@@ -11,7 +11,7 @@ Adds a **Multi-Scene** button to the Scenes tab. It opens a full-screen window w
 3. Choose options on the right: Disable Vision, Disable Grid, automatic background color, Scene Transition, padding, Scene folder, and whether the Scenes show in the navigation bar.
 4. Click **Create Scenes**. Files are uploaded to `worlds/<world>/mass-scenes/` and one Scene is created per row.
 
-Status: implemented, waiting for a manual test pass in Foundry v14 ([TESTING.md](TESTING.md)). See [PLAN.md](PLAN.md) for the design.
+Status: working in Foundry v14. A manual test checklist is in [TESTING.md](TESTING.md); the design is in [PLAN.md](PLAN.md).
 
 ## Install
 

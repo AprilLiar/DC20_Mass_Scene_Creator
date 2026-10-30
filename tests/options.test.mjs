@@ -76,20 +76,29 @@ test("Disable Grid prefers Foundry's own constant when it exists", () => {
   }
 });
 
-test("automatic background color uses the sampled color", async () => {
-  const on = {};
+const withLevel = () => ({ levels: [{ name: "L", background: { src: "p.png" } }] });
+
+test("automatic background color puts the sampled color on the Level's background", async () => {
+  const on = withLevel();
   await byId.autoBackgroundColor.apply(on, true, { getDominantColor: async () => "#336699" });
-  assert.equal(on.backgroundColor, "#336699");
+  assert.deepEqual(on.levels[0].background, { src: "p.png", color: "#336699" });
+  assert.equal("backgroundColor" in on, false, "v14 Scenes have no backgroundColor field");
 });
 
 test("automatic background color leaves the Scene alone when off or when nothing was sampled", async () => {
   const context = { getDominantColor: async () => "#336699" };
-  const off = {};
+  const off = withLevel();
   await byId.autoBackgroundColor.apply(off, false, context);
-  assert.equal("backgroundColor" in off, false);
-  const none = {};
+  assert.deepEqual(off.levels[0].background, { src: "p.png" });
+  const none = withLevel();
   await byId.autoBackgroundColor.apply(none, true, { getDominantColor: async () => null });
-  assert.equal("backgroundColor" in none, false);
+  assert.deepEqual(none.levels[0].background, { src: "p.png" });
+});
+
+test("automatic background color does nothing for a Scene without a Level", async () => {
+  const noLevel = {};
+  await byId.autoBackgroundColor.apply(noLevel, true, { getDominantColor: async () => "#336699" });
+  assert.deepEqual(noLevel, {});
 });
 
 test("transition choices come from the registry and Wind is the default", () => {
@@ -152,14 +161,14 @@ test("the navigation option always writes an explicit value", () => {
 });
 
 test("applyOptions runs every option on the Scene data", async () => {
-  const sceneData = { name: "Test" };
+  const sceneData = { name: "Test", levels: [{ name: "Test", background: { src: "p.png" } }] };
   const values = { ...defaultValues(env), sceneFolder: "f1", padding: 10 };
   await applyOptions(sceneData, values, { getDominantColor: async () => "#102030" });
   assert.deepEqual(sceneData, {
     name: "Test",
+    levels: [{ name: "Test", background: { src: "p.png", color: "#102030" } }],
     tokenVision: false,
     grid: { type: 0 },
-    backgroundColor: "#102030",
     transition: { type: "wind" },
     padding: 0.1,
     folder: "f1",

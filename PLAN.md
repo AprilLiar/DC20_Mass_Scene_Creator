@@ -2,7 +2,7 @@
 
 A system-agnostic Foundry VTT module (v14 only) that creates many Scenes at once from dropped image/video files or folders.
 
-Status: implemented and released through GitHub Actions. Waiting for a manual test pass in Foundry v14 (see TESTING.md); section 5 lists what only a live world can confirm.
+Status: implemented and released through GitHub Actions; working in Foundry v14 (see section 5 for what the real-world tests found).
 
 ## 1. Decisions
 
@@ -49,7 +49,7 @@ Options are registered in `scripts/options/index.mjs`; adding one means a new fi
 | --- | --- | --- | --- |
 | Disable Vision? | boolean | on | `tokenVision = false`. Nothing else changed. |
 | Disable Grid? | boolean | on | `grid.type = CONST.GRID_TYPES.GRIDLESS` (0). |
-| Set Background color automatically? | boolean | on | `backgroundColor` = most frequent color of the picture (shrunk to 64 px, 16 buckets per channel, average of the winning bucket; first frame for video). A color that cannot be read leaves Foundry's default. |
+| Set Background color automatically? | boolean | on | `levels[0].background.color` = most frequent color of the picture (shrunk to 64 px, 16 buckets per channel, average of the winning bucket; first frame for video). A color that cannot be read leaves Foundry's default grey. |
 | Scene Transition | select | Wind | `transition.type` from `CONFIG.Canvas.sceneTransitions`. Falls back to Foundry's default with a warning if Wind is missing. |
 | Padding (%) | number 0-50 | 0 | `padding` as a fraction. Always written, so 0 overrides Foundry's 25% default. |
 | Scene folder | folder | none | `folder` = existing Scene folder, or a new one created first. |
@@ -62,11 +62,12 @@ Every Scene also gets `name`, `levels: [{ name, background: { src } }]` and `wid
 Latest v14 build when planning: 14.369 (Stable 11, 2026-10-08). Stable 1 was 14.359. API base: https://foundryvtt.com/api/v14/
 
 Scene data (`interfaces/foundry.documents.types.SceneData.html`):
-- `name`, `folder`, `width`, `height` ("normally the width/height of the background media"), `padding` (proportion of buffer around the scene), `backgroundColor` ("color of the canvas displayed behind the scene background"), `tokenVision` (boolean), `grid` (`GridData`: `type`, `size`, `distance`, `units`, ...), `transition` (`{ type: string|null, duration, activeOnly }`), `levels` (embedded `LevelData[]`), `initialLevel`, `fog.mode` (fog exploration is now a `mode` number, not a boolean).
+- `name`, `folder`, `width`, `height` ("normally the width/height of the background media"), `padding` (proportion of buffer around the scene), `tokenVision` (boolean), `grid` (`GridData`: `type`, `size`, `distance`, `units`, ...), `transition` (`{ type: string|null, duration, activeOnly }`), `levels` (embedded `LevelData[]`), `initialLevel`, `fog.mode` (fog exploration is now a `mode` number, not a boolean).
 - Default background color in the Scenes article is #999999.
 - `CONST.GRID_TYPES`: `GRIDLESS: 0, SQUARE: 1, HEXODDR: 2, HEXEVENR: 3, HEXODDQ: 4, HEXEVENQ: 5`.
 
 Background image (Levels):
+- The background color is not a Scene field in v14. The `SceneData` summary page still lists `backgroundColor`, but the real Scene schema (`Scene.defineSchema`) does not, and a top-level `backgroundColor` is silently dropped (found in the first real test: every Scene stayed grey). The color is `levels[].background.color`, a CSS color string (`ColorField`).
 - `Scene#background` is gone; a Level carries the image: `LevelData.background` is `{ src, tint, alphaThreshold } & { color: number }`. Level fields: `_id`, `name`, `sort`, `elevation {bottom, top}`, `background`, `foreground`, `fog`, `textures`, `visibility`. A third-party PR confirms creating a Scene with one Level holding `background.src` and that the first Level becomes the initial Level. A real v14 world additionally requires `name` on every Level. https://github.com/JohnMPrince/deadsuns-adaptation-vtt/pull/21
 - `Scene#createThumbnail({ format, width, height, quality, level })` returns `{ thumb, ... }`, defaults to the initial level, 300x100 webp.
 - `Scene#getDimensions()` applies padding and rounds to whole grid spaces (2x grid size).
@@ -95,18 +96,15 @@ ApplicationV2 window options (`ApplicationConfiguration`, `ApplicationWindowConf
 - `window`: `title`, `icon`, `frame` ("rendered inside a window frame"), `positioned` ("positioned via JavaScript or only by CSS"), `resizable`, `minimizable`, `controls`, `contentClasses`, `contentTag`.
 - Full-viewport plan: a normal framed window; `new MultiSceneApp()` passes `position: { top: 0, left: 0, width: innerWidth, height: innerHeight }` to the constructor, which merges it into the defaults (documented for `ApplicationV2`).
 
-## 5. Still unverified (needs a live v14 world; the API docs do not cover these)
+## 5. Status of the real-world tests
 
-These are covered step by step in [TESTING.md](TESTING.md). In short:
+Tested in a real Foundry v14 world by the user (builds 0.0.7 and 0.0.8): the Scenes tab button, the window, adding files, the options panel, uploading and creating Scenes all work. The tests found three problems, all fixed:
 
-1. DOM of the Scenes tab header. The button is inserted after `[data-action="createEntry"]`, falling back to the header and then the top of the tab.
-2. Exact shape of the `FilePicker.upload` response (the code uses `response.path`, and builds the path from folder and name if it is missing).
-3. Whether `Scene.create` with `levels: [{ name, background: { src } }]` plus explicit `width` / `height` produces a correct Scene, and whether Foundry makes the thumbnail itself (the code fills it in when missing).
-4. Whether the "Background Color" shown in the Scene configuration is `Scene.backgroundColor` (set by this module) or the Level's own background color.
-5. The internal id of the "Wind" transition (looked up at runtime by id or label).
-6. That the window opens at full viewport size and that the `render({ parts })` option re-renders only the named parts.
+1. Foundry v14 requires a `name` on every Level (all Scene creations failed). The Level is now named like the Scene.
+2. A stale cached stylesheet from the previous version broke the window layout after an update. The stylesheet is now added by script with the module version in its URL.
+3. The Scene has no `backgroundColor` field in v14, so the picture color was silently dropped and every Scene stayed grey. The color is now written to `levels[0].background.color`.
 
-The mock-Foundry browser checks used during development only prove the module's own logic; they cannot prove the points above.
+Still to look at in [TESTING.md](TESTING.md): the values in the Scene configuration (step 14), that a second run re-uses uploaded files (step 17), and cancelling a run (step 20). The mock-Foundry browser checks used during development only prove the module's own logic; they could not have found any of the three problems above.
 
 ## 6. File layout
 

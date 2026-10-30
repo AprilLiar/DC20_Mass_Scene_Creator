@@ -53,12 +53,11 @@ test("buildSceneData has the name, a background Level, the media size and the op
   });
   assert.deepEqual(data, {
     name: "Inn",
-    levels: [{ name: "Inn", background: { src: "uploads/inn.png" } }],
+    levels: [{ name: "Inn", background: { src: "uploads/inn.png", color: "#102030" } }],
     width: 800,
     height: 600,
     tokenVision: false,
     grid: { type: 0 },
-    backgroundColor: "#102030",
     transition: { type: "wind" },
     padding: 0,
     navigation: false
@@ -88,8 +87,9 @@ test("createScenes makes one Scene per row, in order, with the color of each pic
   const result = await createScenes({ rows: [row("A"), row("B")], ...options() }, deps);
   assert.deepEqual(deps.log.filter((entry) => entry.startsWith("scene:")), ["scene:A", "scene:B"]);
   assert.equal(result.created.length, 2);
-  assert.equal(result.created[0].scene.data.backgroundColor, "#color-of-A");
-  assert.equal(result.created[1].scene.data.backgroundColor, "#color-of-B");
+  assert.equal(result.created[0].scene.data.levels[0].background.color, "#color-of-A");
+  assert.equal(result.created[1].scene.data.levels[0].background.color, "#color-of-B");
+  assert.ok(result.created.every((entry) => !("backgroundColor" in entry.scene.data)));
   assert.deepEqual([result.failures.length, result.stopped], [0, false]);
 });
 
@@ -145,7 +145,7 @@ test("a color that cannot be read does not fail the row", async () => {
   try {
     const result = await createScenes({ rows: [row("A")], ...options() }, deps);
     assert.equal(result.created.length, 1);
-    assert.equal("backgroundColor" in result.created[0].scene.data, false);
+    assert.equal("color" in result.created[0].scene.data.levels[0].background, false);
   } finally {
     console.warn = originalWarn;
   }
