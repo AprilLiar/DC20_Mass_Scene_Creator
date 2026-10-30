@@ -1,57 +1,21 @@
 /*
- * The window element is the grid: a title bar across the top, the files on the
- * left (70%) and the options on the right (30%). It is pinned over the whole
- * screen and has no Foundry window frame.
+ * Multi-Scene is a normal Foundry window that opens at the size of the browser
+ * viewport. Inside it, the window content is a two-column grid: the files on
+ * the left (70%) and the options on the right (30%). Colors are semi-transparent
+ * so the window follows whatever Foundry theme is active.
  */
-.application.multi-scene-app {
-  --ms-bg: #17161c;
-  --ms-panel: #1f1e26;
-  --ms-border: #3a3844;
-  --ms-text: #e6e4ea;
-  --ms-muted: #9a97a6;
+.multi-scene-app {
+  --ms-panel: rgba(0, 0, 0, 0.22);
+  --ms-border: rgba(128, 128, 128, 0.45);
   --ms-accent: #7aa2ff;
+}
 
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-index-window, 100);
-  width: auto;
-  height: auto;
-  margin: 0;
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
-  display: grid;
+.multi-scene-app .ms-content {
+  display: grid !important;
   grid-template-columns: 7fr 3fr;
-  grid-template-rows: auto minmax(0, 1fr);
-  pointer-events: auto;
-  background: var(--ms-bg);
-  color: var(--ms-text);
-}
-
-.multi-scene-app .ms-titlebar {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem 1rem;
-  background: var(--ms-panel);
-  border-bottom: 1px solid var(--ms-border);
-}
-
-.multi-scene-app .ms-titlebar h1 {
-  margin: 0;
-  border: none;
-  font-size: 1.25rem;
-  color: var(--ms-text);
-}
-
-.multi-scene-app .ms-close {
-  flex: none;
-  width: 2rem;
-  height: 2rem;
-  margin: 0;
-  padding: 0;
-  line-height: 1;
+  grid-template-rows: minmax(0, 1fr);
+  padding: 0 !important;
+  overflow: hidden !important;
 }
 
 .multi-scene-app .ms-main,
@@ -70,7 +34,6 @@
   margin: 0 0 0.75rem;
   border: none;
   font-size: 1.1rem;
-  color: var(--ms-text);
 }
 
 /* Highlight the file area while files are dragged over the window. */
@@ -89,7 +52,6 @@
   padding: 1rem;
   border: 2px dashed var(--ms-border);
   border-radius: 8px;
-  color: var(--ms-muted);
   text-align: center;
 }
 
@@ -106,6 +68,7 @@
 
 .multi-scene-app .ms-intake-hint {
   margin: 0;
+  opacity: 0.75;
 }
 
 .multi-scene-app .ms-intake-buttons {
@@ -121,7 +84,7 @@
 
 .multi-scene-app .ms-count {
   margin: 1rem 0 0.5rem;
-  color: var(--ms-muted);
+  opacity: 0.75;
 }
 
 /* One row per Scene: preview, name field, remove button. */
@@ -178,7 +141,7 @@
 .multi-scene-app .ms-path {
   overflow: hidden;
   font-size: 0.8rem;
-  color: var(--ms-muted);
+  opacity: 0.7;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -233,7 +196,7 @@
 .multi-scene-app .ms-hint {
   margin: 0.25rem 0 0;
   font-size: 0.85rem;
-  color: var(--ms-muted);
+  opacity: 0.7;
 }
 
 .multi-scene-app .ms-warning {
@@ -264,7 +227,7 @@
 .multi-scene-app .ms-progress-text {
   margin: 0.25rem 0 0;
   font-size: 0.85rem;
-  color: var(--ms-muted);
+  opacity: 0.7;
 }
 
 .multi-scene-app .ms-failures {

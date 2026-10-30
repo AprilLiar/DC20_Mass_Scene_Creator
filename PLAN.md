@@ -22,7 +22,7 @@ Status: implemented and released through GitHub Actions. Waiting for a manual te
 
 ### Entry point
 - A "Multi-Scene" button in the header of the Scenes sidebar tab, placed after the built-in Create Scene button. Shown only when `Scene.canUserCreate(game.user)` and `game.user.can("FILES_UPLOAD")` are true.
-- Opens a full-viewport window with no Foundry frame: own title bar with a Close button, files on the left (70%), options on the right (30%).
+- Opens a normal Foundry window (title bar, draggable, resizable, minimizable, closable) sized to the whole browser viewport: files on the left (70%), options on the right (30%). A first version without a window frame never became visible in Foundry v14 and was replaced by this one.
 
 ### Intake
 - Drag and drop files or folders anywhere in the window, or use Browse files / Browse folder.
@@ -93,7 +93,7 @@ Transitions:
 ApplicationV2 window options (`ApplicationConfiguration`, `ApplicationWindowConfiguration`):
 - Top level: `id`, `classes`, `tag`, `actions`, `position`, `form`, `window`.
 - `window`: `title`, `icon`, `frame` ("rendered inside a window frame"), `positioned` ("positioned via JavaScript or only by CSS"), `resizable`, `minimizable`, `controls`, `contentClasses`, `contentTag`.
-- Full-viewport plan: `window.positioned = false` and CSS `position: fixed; inset: 0`, own title bar inside the template (or keep the frame and style it).
+- Full-viewport plan: a normal framed window; `new MultiSceneApp()` passes `position: { top: 0, left: 0, width: innerWidth, height: innerHeight }` to the constructor, which merges it into the defaults (documented for `ApplicationV2`).
 
 ## 5. Still unverified (needs a live v14 world; the API docs do not cover these)
 
@@ -104,7 +104,7 @@ These are covered step by step in [TESTING.md](TESTING.md). In short:
 3. Whether `Scene.create` with `levels: [{ background: { src } }]` plus explicit `width` / `height` produces a correct Scene, and whether Foundry makes the thumbnail itself (the code fills it in when missing).
 4. Whether the "Background Color" shown in the Scene configuration is `Scene.backgroundColor` (set by this module) or the Level's own background color.
 5. The internal id of the "Wind" transition (looked up at runtime by id or label).
-6. Frameless window behavior: `window.positioned = false` with CSS `position: fixed`, stacking above other windows via `bringToFront()`, and the `render({ parts })` option.
+6. That the window opens at full viewport size and that the `render({ parts })` option re-renders only the named parts.
 
 The mock-Foundry browser checks used during development only prove the module's own logic; they cannot prove the points above.
 
@@ -115,7 +115,7 @@ module.json                      manifest (version, manifest and download URLs a
 LICENSE  README.md  PLAN.md  TESTING.md  package.json
 lang/en.json
 styles/multi-scene.css
-templates/titlebar.hbs main.hbs options.hbs     the three parts of the window
+templates/main.hbs options.hbs                  the two parts of the window (files, options)
 scripts/main.mjs                 init: settings, renderSceneDirectory hook
 scripts/scene-directory.mjs      the hook: builds the button
 scripts/button-placement.mjs     where the button goes (pure)

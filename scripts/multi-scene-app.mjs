@@ -12,17 +12,22 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const TEMPLATES = "modules/multi-scene/templates";
 
 /**
- * The full-viewport Multi-Scene window. It has no Foundry window frame: the
- * title bar is its own part and the CSS pins the whole window over the screen.
+ * The Multi-Scene window: a normal Foundry window (draggable, resizable,
+ * minimizable) that opens at the size of the browser viewport.
  */
 export class MultiSceneApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "multi-scene-app",
     classes: ["multi-scene-app"],
     tag: "div",
-    window: { frame: false, positioned: false },
+    window: {
+      title: "MULTISCENE.Title",
+      icon: "fa-solid fa-images",
+      resizable: true,
+      minimizable: true,
+      contentClasses: ["ms-content"]
+    },
     actions: {
-      closeWindow: MultiSceneApp.#onCloseWindow,
       browseFiles: MultiSceneApp.#onBrowseFiles,
       browseFolder: MultiSceneApp.#onBrowseFolder,
       removeRow: MultiSceneApp.#onRemoveRow,
@@ -31,7 +36,6 @@ export class MultiSceneApp extends HandlebarsApplicationMixin(ApplicationV2) {
   };
 
   static PARTS = {
-    titlebar: { template: `${TEMPLATES}/titlebar.hbs` },
     main: { template: `${TEMPLATES}/main.hbs` },
     options: { template: `${TEMPLATES}/options.hbs` }
   };
@@ -49,15 +53,24 @@ export class MultiSceneApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #closed = false;
   #renderQueue = Promise.resolve();
 
+  constructor(options = {}) {
+    // Open covering the whole browser window; the user can still move, resize or minimize it.
+    super({ position: { top: 0, left: 0, width: window.innerWidth, height: window.innerHeight }, ...options });
+  }
+
   /** Open the window, or bring it to the front if it is already open. */
   static open() {
     if (MultiSceneApp.#current?.rendered) {
       MultiSceneApp.#current.bringToFront();
       return MultiSceneApp.#current;
     }
-    MultiSceneApp.#current = new MultiSceneApp();
-    MultiSceneApp.#current.render({ force: true });
-    return MultiSceneApp.#current;
+    const app = new MultiSceneApp();
+    MultiSceneApp.#current = app;
+    app.render({ force: true }).catch((error) => {
+      console.error("multi-scene | could not open the window", error);
+      ui.notifications.error(game.i18n.format("MULTISCENE.OpenError", { reason: error?.message ?? String(error) }));
+    });
+    return app;
   }
 
   /** What the option definitions need to know about this Foundry world. */
@@ -105,8 +118,6 @@ export class MultiSceneApp extends HandlebarsApplicationMixin(ApplicationV2) {
     root.addEventListener("scroll", (event) => this.#onScroll(event), true);
     root.addEventListener("mouseover", (event) => this.#onHover(event, true));
     root.addEventListener("mouseout", (event) => this.#onHover(event, false));
-    // Without a frame Foundry does not stack this window by itself.
-    this.bringToFront();
   }
 
   /** @override */
@@ -189,10 +200,6 @@ export class MultiSceneApp extends HandlebarsApplicationMixin(ApplicationV2) {
     URL.revokeObjectURL(row.previewUrl);
     this.#rows = this.#rows.filter((candidate) => candidate !== row);
     return this.#refresh(["main", "options"]);
-  }
-
-  static #onCloseWindow() {
-    return this.close();
   }
 
   /* ---------------------------------------------------------------- */

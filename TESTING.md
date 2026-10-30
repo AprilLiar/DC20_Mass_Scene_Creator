@@ -17,8 +17,8 @@ Have a test folder ready with: a few images of different sizes, one sub-folder w
 ## 1. The button and the window
 
 1. Open the Scenes tab. A **Multi-Scene** button should be next to Create Scene / Create Folder. If it is somewhere odd, tell me where it appeared.
-2. Click it. A window should cover the whole screen, including the sidebar and the hotbar.
-3. Open another window first (for example a Journal) and then open Multi-Scene: the other window must not show through. Close button works.
+2. Click it. A normal Foundry window titled Multi-Scene should open, covering the whole screen (including the sidebar and the hotbar), with the files area on the left and the options on the right.
+3. Check it behaves like any Foundry window: drag it by the title bar, resize it from the bottom-right corner, minimize it, and close it with the X. Open it again after closing.
 
 ## 2. Adding files
 

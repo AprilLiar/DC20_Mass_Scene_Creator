@@ -2,7 +2,7 @@
   "MULTISCENE": {
     "Title": "Multi-Scene",
     "Button": "Multi-Scene",
-    "Close": "Close",
+    "OpenError": "Multi-Scene could not open its window: {reason}",
     "Intake": {
       "Drop": "Drop images, videos or a folder here",
       "DropMore": "Drop more files or a folder anywhere in this window",
