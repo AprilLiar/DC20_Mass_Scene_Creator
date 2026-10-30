@@ -1,3 +1,5 @@
+import { addMultiSceneButton } from "./scene-directory.mjs";
+
 Hooks.once("init", () => {
-  console.log("multi-scene | init");
+  Hooks.on("renderSceneDirectory", addMultiSceneButton);
 });

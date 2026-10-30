@@ -2,6 +2,7 @@
   "MULTISCENE": {
     "Title": "Multi-Scene",
     "Button": "Multi-Scene",
+    "Close": "Close",
     "Options": {
       "Title": "Options",
       "DisableVision": {
