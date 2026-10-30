@@ -2,7 +2,7 @@
 
 A system-agnostic Foundry VTT module (v14 only) that creates many Scenes at once from dropped image/video files or folders.
 
-Status: design agreed, implementation not started. Items marked UNVERIFIED must be checked against the official v14 API docs (foundryvtt.com) before or during implementation; the docs host was unreachable while this plan was written.
+Status: design agreed, API research done against the official v14 docs, implementation not started. Section 5 lists the few things that can only be checked in a live Foundry v14 world.
 
 ## 1. Decisions
 
@@ -21,7 +21,7 @@ Status: design agreed, implementation not started. Items marked UNVERIFIED must 
 ## 2. User-facing behavior
 
 ### Entry point
-- A "Multi-Scene" button in the header of the Scenes sidebar tab, next to Create Scene / Create Folder. Shown only to users allowed to create Scenes (GM by default).
+- A "Multi-Scene" button in the header of the Scenes sidebar tab, next to Create Scene / Create Folder. Shown only when `Scene.canUserCreate(game.user)` is true and the user can upload files (`FilePicker.canUpload`).
 - Opens a full-viewport application (covers the whole browser window, own title bar and Close button, not draggable or resizable).
 
 ### Layout
@@ -31,7 +31,7 @@ Status: design agreed, implementation not started. Items marked UNVERIFIED must 
 - Empty state: a large drop target with a Browse files button and a Browse folder button (hidden `<input type="file" multiple>` and `<input type="file" webkitdirectory>`).
 
 ### Intake
-- Accepts images and video (Foundry-supported extensions; list taken from Foundry constants at runtime if available, otherwise a fixed fallback list).
+- Accepts images and video; allowed extensions come from `CONST.IMAGE_FILE_EXTENSIONS` and `CONST.VIDEO_FILE_EXTENSIONS`.
 - Dropping a folder includes all sub-folders recursively (`DataTransferItem.webkitGetAsEntry()` traversal).
 - Dropping or browsing again appends to the list; it does not replace it.
 - Rows are sorted alphabetically by relative path.
@@ -52,34 +52,60 @@ Options are defined in a registry so more can be added later without touching th
 | Option | Type | Default | Effect on each created Scene |
 | --- | --- | --- | --- |
 | Disable Vision? | boolean | on | `tokenVision = false`. Nothing else changed (fog exploration untouched). |
-| Disable Grid? | boolean | on | `grid.type = CONST.GRID_TYPES.GRIDLESS`. |
+| Disable Grid? | boolean | on | `grid.type = CONST.GRID_TYPES.GRIDLESS` (0). |
 | Set Background color automatically? | boolean | on | `backgroundColor` = most frequent color of the picture. Image is shrunk (e.g. to 64 px on the long side), pixels grouped into color buckets, the most populated bucket wins (bucket average used as the result). Videos: first frame. Off = Foundry's default color. |
-| Scene Transition | select | Wind | `transition.type` set to the chosen type. Duration and `activeOnly` stay at Foundry defaults. The list of types is read from Foundry at runtime; if Wind is not found the dropdown falls back to Foundry's default and shows a warning. |
+| Scene Transition | select | Wind | `transition.type` set to the chosen type. Duration and `activeOnly` stay at Foundry defaults. The list of types is built from `CONFIG.Canvas.sceneTransitions`; if Wind is not found the dropdown falls back to Foundry's default and shows a warning. |
 | Padding | number (percent) | 0 | Scene `padding`. Default value is a proposal, see section 8. |
 | Scene folder | select | none | Folder of the created Scenes: none, any existing Scene folder, or "create new folder". |
 
-## 4. Foundry v14 research notes
+## 4. Foundry v14 research notes (verified against the official v14 API docs)
 
-Confirmed from search results and API pages (secondary sources, see links):
-- Latest v14 build when planning: 14.369, Stable 11, dated 2026-10-08. Stable 1 was 14.359. https://foundryvtt.com/releases/14.369
-- `Scene#background` is dropped in v14 (writes are silently ignored). The background is an embedded Level: `levels: [{ background: { src } }]`; the first Level is the initial Level and Foundry assigns ids/defaults. Source is a third-party PR, so verify it. https://github.com/JohnMPrince/deadsuns-adaptation-vtt/pull/21
-- Scene data has `backgroundColor` (canvas color behind the background), `transition: { type, duration, activeOnly }`, `levels`, `initialLevel`. https://foundryvtt.com/api/v14/interfaces/foundry.documents.types.SceneData.html
-- v14 has 14 scene transition types and the default is a subtle fade. https://foundryvtt.com/releases/14.352
-- `SceneDirectory` is an ApplicationV2 class. https://foundryvtt.com/api/v14/classes/foundry.applications.sidebar.tabs.SceneDirectory.html
-- ApplicationV2 header-control hook: `getHeaderControlsApplicationV2`. https://foundryvtt.com/api/v13/functions/hookEvents.getHeaderControlsApplicationV2.html
+Latest v14 build when planning: 14.369 (Stable 11, 2026-10-08). Stable 1 was 14.359. API base: https://foundryvtt.com/api/v14/
 
-## 5. UNVERIFIED items to check first
+Scene data (`interfaces/foundry.documents.types.SceneData.html`):
+- `name`, `folder`, `width`, `height` ("normally the width/height of the background media"), `padding` (proportion of buffer around the scene), `backgroundColor` ("color of the canvas displayed behind the scene background"), `tokenVision` (boolean), `grid` (`GridData`: `type`, `size`, `distance`, `units`, ...), `transition` (`{ type: string|null, duration, activeOnly }`), `levels` (embedded `LevelData[]`), `initialLevel`, `fog.mode` (fog exploration is now a `mode` number, not a boolean).
+- Default background color in the Scenes article is #999999.
+- `CONST.GRID_TYPES`: `GRIDLESS: 0, SQUARE: 1, HEXODDR: 2, HEXEVENR: 3, HEXODDQ: 4, HEXEVENQ: 5`.
 
-1. Hook and DOM for the Scenes tab button: expected `renderSceneDirectory(app, html: HTMLElement, ...)` and the selector of the header action row in v14.
-2. Exact `Scene.createDocuments` payload for a Level background; whether `width`/`height` are derived from the Level background automatically or must be passed; thumbnail generation for Level-based Scenes.
-3. Whether `backgroundColor` and `padding` are still top-level Scene fields when Levels are used.
-4. Where the list of transition types lives (config object path) and the internal key for "Wind".
-5. `FilePicker` v14 signatures: `upload`, `browse`, `createDirectory`, `implementation`; behavior of the `data` source; required permission (`FILES_UPLOAD`); upload return value (final path).
-6. ApplicationV2 + HandlebarsApplicationMixin specifics for a full-viewport window (DEFAULT_OPTIONS keys, how to hide the standard frame/title bar or style it), `_onRender` for wiring native drag-and-drop events.
-7. `CONST.GRID_TYPES.GRIDLESS` (believed to be 0) and existence of `CONST.IMAGE_FILE_EXTENSIONS` / `CONST.VIDEO_FILE_EXTENSIONS` in v14.
-8. Permission constant used to decide who sees the button (Scene creation).
+Background image (Levels):
+- `Scene#background` is gone; a Level carries the image: `LevelData.background` is `{ src, tint, alphaThreshold } & { color: number }`. Level fields: `_id`, `name`, `sort`, `elevation {bottom, top}`, `background`, `foreground`, `fog`, `textures`, `visibility`. A third-party PR confirms creating a Scene with `levels: [{ background: { src } }]` and that the first Level becomes the initial Level. https://github.com/JohnMPrince/deadsuns-adaptation-vtt/pull/21
+- `Scene#createThumbnail({ format, width, height, quality, level })` returns `{ thumb, ... }`, defaults to the initial level, 300x100 webp.
+- `Scene#getDimensions()` applies padding and rounds to whole grid spaces (2x grid size).
 
-Fastest fix: add `foundryvtt.com` under Allowed domains in the cloud environment's network settings so the API pages can be read.
+Scenes tab button:
+- `SceneDirectory` is an ApplicationV2 (`tabName = "scenes"`, PARTS `header`, `directory`, `footer`; has `_getHeaderControls`, `_canCreateEntry`, `_onCreateEntry`).
+- Render hook: `renderSceneDirectory(application, element: HTMLElement, context, options)`. Every class in the inheritance chain fires its own hook (docs: `hookEvents.renderApplicationV2`). `getHeaderControlsApplicationV2` also exists but adds window-title-bar controls, not directory header buttons, so the render hook is used.
+- Who sees the button: `Scene.canUserCreate(game.user)` (static).
+
+File upload (`foundry.applications.apps.FilePicker`, use `FilePicker.implementation`):
+- `upload(source, path, file: File, body = {}, options = { notify })` -> `Promise<object>` ("the response object").
+- `browse(source, target, { bucket, extensions, wildcard })` -> `Promise<object>` (directories and files).
+- `createDirectory(source, target, options)` -> `Promise<object>`; the directory must not already exist (so browse first, or catch the error).
+- `FilePicker.canUpload` tells whether the current user may upload.
+
+Constants:
+- `CONST.IMAGE_FILE_EXTENSIONS`: apng, avif, bmp, gif, jpeg, jpg, png, svg, tiff, webp (extension -> mime type).
+- `CONST.VIDEO_FILE_EXTENSIONS`: m4v, mp4, ogv, webm (extension -> mime type).
+
+Transitions:
+- Registry: `CONFIG.Canvas.sceneTransitions: Record<string, { id, label, filterClass, filterType, defaultDuration? }>`; default is `fade`. `Scene.transition.type` takes a registry id. The dropdown is built from this registry with `game.i18n.localize(label)`. The id of "Wind" is not documented; look it up at runtime (id `wind`, else a label match).
+- Safeguards: an unknown transition type no longer stops scenes from loading (14.354); "None" is selectable (14.355).
+
+ApplicationV2 window options (`ApplicationConfiguration`, `ApplicationWindowConfiguration`):
+- Top level: `id`, `classes`, `tag`, `actions`, `position`, `form`, `window`.
+- `window`: `title`, `icon`, `frame` ("rendered inside a window frame"), `positioned` ("positioned via JavaScript or only by CSS"), `resizable`, `minimizable`, `controls`, `contentClasses`, `contentTag`.
+- Full-viewport plan: `window.positioned = false` and CSS `position: fixed; inset: 0`, own title bar inside the template (or keep the frame and style it).
+
+## 5. Still unverified (needs a live v14 world; the API docs do not cover these)
+
+1. DOM of the Scenes tab header (core template, not in the API docs). The button is placed robustly: find the `[data-action="createEntry"]` button inside `element` and insert after it; fall back to the `header` part; skip if the button already exists (the hook fires on every re-render).
+2. Exact shape of the `FilePicker.upload` response (expected to contain the final `path`; if missing, the path is built from folder + file name).
+3. Whether `Scene.createDocuments` with `levels: [{ background: { src } }]` also needs explicit top-level `width`/`height` (plan: always pass them from the image's natural size) and whether core generates the thumbnail itself (fallback: call `createThumbnail` and update `thumb`).
+4. Which color the Scene configuration actually shows as "Background Color" now: `Scene.backgroundColor` (string) or the Level's `background.color` (number). Plan: set `backgroundColor`, then check in Foundry; adjust if needed.
+5. The internal id of the "Wind" transition (found at runtime, see above).
+6. `window.positioned = false` behavior with a fixed-position full-viewport layout.
+
+Everything else in this plan is verified or independent of Foundry internals.
 
 ## 6. File layout
 
