@@ -1,6 +1,37 @@
 {
   "MULTISCENE": {
     "Title": "Multi-Scene",
-    "Button": "Multi-Scene"
+    "Button": "Multi-Scene",
+    "Options": {
+      "Title": "Options",
+      "DisableVision": {
+        "Label": "Disable Vision?",
+        "Hint": "Turns Token Vision off on the created Scenes."
+      },
+      "DisableGrid": {
+        "Label": "Disable Grid?",
+        "Hint": "Sets the grid of the created Scenes to Gridless."
+      },
+      "AutoBackgroundColor": {
+        "Label": "Set Background color automatically?",
+        "Hint": "Uses the most frequent color of each picture as the Scene background color."
+      },
+      "SceneTransition": {
+        "Label": "Scene Transition",
+        "Hint": "Transition animation used when switching to the created Scenes.",
+        "WindMissing": "The Wind transition was not found, so Foundry's default transition is selected."
+      },
+      "Padding": {
+        "Label": "Padding (%)",
+        "Hint": "Extra space around each picture, as a percentage of its size."
+      },
+      "SceneFolder": {
+        "Label": "Scene folder",
+        "Hint": "Folder in the Scenes tab that receives the created Scenes.",
+        "None": "No folder",
+        "New": "New folder...",
+        "NewName": "New folder name"
+      }
+    }
   }
 }
