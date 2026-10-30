@@ -40,10 +40,9 @@ Have a test folder ready with: a few images of different sizes, one sub-folder w
 
 12. Click **Create Scenes**. Progress shows, the controls are locked, then the window closes and a notification gives the count.
 13. In the Scenes tab, check the new Scenes: names as typed, thumbnails present, and none in the top navigation bar.
-14. Open one Scene's configuration and check:
-    - Token Vision is unchecked.
-    - Grid type is Gridless.
-    - The background color of the Level (Levels tab) is not the default grey and matches the picture's main color.
+14. Open the configuration of a Scene that Multi-Scene created (its Background Image path starts with `worlds/<world>/mass-scenes/` and the file name ends with a short hash; Scenes you made earlier are not a valid test) and check:
+    - Basics tab, Initial Level section: Background Image is that path, and Background Color is not the default grey `#999999` but the picture's main color.
+    - Token Vision is unchecked and the Grid type is Gridless (Visibility and Grid tabs).
     - Transition type is Wind.
     - Padding is 0, and the Scene dimensions equal the picture size.
     - There is one Level with the picture as its background.
