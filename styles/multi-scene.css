@@ -1,10 +1,15 @@
-/* The window is pinned over the whole screen; it has no Foundry window frame. */
+/*
+ * The window element is the grid: a title bar across the top, the files on the
+ * left (70%) and the options on the right (30%). It is pinned over the whole
+ * screen and has no Foundry window frame.
+ */
 .application.multi-scene-app {
   --ms-bg: #17161c;
   --ms-panel: #1f1e26;
   --ms-border: #3a3844;
   --ms-text: #e6e4ea;
   --ms-muted: #9a97a6;
+  --ms-accent: #7aa2ff;
 
   position: fixed;
   inset: 0;
@@ -15,26 +20,19 @@
   border: none;
   border-radius: 0;
   box-shadow: none;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 7fr 3fr;
+  grid-template-rows: auto minmax(0, 1fr);
   pointer-events: auto;
   background: var(--ms-bg);
   color: var(--ms-text);
 }
 
-.multi-scene-app .ms-shell {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-}
-
 .multi-scene-app .ms-titlebar {
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex: none;
   padding: 0.5rem 1rem;
   background: var(--ms-panel);
   border-bottom: 1px solid var(--ms-border);
@@ -56,14 +54,6 @@
   line-height: 1;
 }
 
-/* Left 70% for the files, right 30% for the options. */
-.multi-scene-app .ms-body {
-  display: grid;
-  grid-template-columns: 7fr 3fr;
-  flex: 1;
-  min-height: 0;
-}
-
 .multi-scene-app .ms-main,
 .multi-scene-app .ms-options {
   min-height: 0;
@@ -81,4 +71,123 @@
   border: none;
   font-size: 1.1rem;
   color: var(--ms-text);
+}
+
+/* Highlight the file area while files are dragged over the window. */
+.multi-scene-app.is-dragover .ms-main {
+  outline: 3px dashed var(--ms-accent);
+  outline-offset: -10px;
+}
+
+/* Drop zone: big and centered while empty, a slim bar once there are rows. */
+.multi-scene-app .ms-intake {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 2px dashed var(--ms-border);
+  border-radius: 8px;
+  color: var(--ms-muted);
+  text-align: center;
+}
+
+.multi-scene-app .ms-main:not(.has-rows) .ms-intake {
+  min-height: 70%;
+  font-size: 1.25rem;
+}
+
+.multi-scene-app .ms-main.has-rows .ms-intake {
+  flex-direction: row;
+  flex-wrap: wrap;
+  padding: 0.5rem 1rem;
+}
+
+.multi-scene-app .ms-intake-hint {
+  margin: 0;
+}
+
+.multi-scene-app .ms-intake-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.multi-scene-app .ms-intake-buttons button {
+  width: auto;
+  margin: 0;
+  padding: 0 1rem;
+}
+
+.multi-scene-app .ms-count {
+  margin: 1rem 0 0.5rem;
+  color: var(--ms-muted);
+}
+
+/* One row per Scene: preview, name field, remove button. */
+.multi-scene-app .ms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.multi-scene-app .ms-row {
+  display: grid;
+  grid-template-columns: 16rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem;
+  background: var(--ms-panel);
+  border: 1px solid var(--ms-border);
+  border-radius: 6px;
+}
+
+.multi-scene-app .ms-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16rem;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #000;
+  border-radius: 4px;
+}
+
+.multi-scene-app .ms-preview img,
+.multi-scene-app .ms-preview video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.multi-scene-app .ms-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.multi-scene-app .ms-name {
+  width: 100%;
+  font-size: 1.1rem;
+}
+
+.multi-scene-app .ms-path {
+  overflow: hidden;
+  font-size: 0.8rem;
+  color: var(--ms-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.multi-scene-app .ms-remove {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  margin: 0;
+  padding: 0;
+  line-height: 1;
 }

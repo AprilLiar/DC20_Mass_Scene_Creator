@@ -3,6 +3,18 @@
     "Title": "Multi-Scene",
     "Button": "Multi-Scene",
     "Close": "Close",
+    "Intake": {
+      "Drop": "Drop images, videos or a folder here",
+      "DropMore": "Drop more files or a folder anywhere in this window",
+      "BrowseFiles": "Browse files",
+      "BrowseFolder": "Browse folder",
+      "Count": "Scenes to create: {count}",
+      "NamePlaceholder": "Scene name",
+      "Remove": "Remove from the list",
+      "Unsupported": "{count} file(s) were skipped because their type is not supported.",
+      "Duplicates": "{count} file(s) were skipped because they are already in the list.",
+      "ReadError": "The dropped files could not be read."
+    },
     "Options": {
       "Title": "Options",
       "DisableVision": {

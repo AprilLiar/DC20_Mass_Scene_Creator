@@ -1,0 +1,42 @@
+<section class="ms-main{{#if hasRows}} has-rows{{/if}}">
+  <div class="ms-intake">
+    <p class="ms-intake-hint">
+      <i class="fa-solid fa-cloud-arrow-up"></i>
+      {{#if hasRows}}{{localize "MULTISCENE.Intake.DropMore"}}{{else}}{{localize "MULTISCENE.Intake.Drop"}}{{/if}}
+    </p>
+    <div class="ms-intake-buttons">
+      <button type="button" data-action="browseFiles">
+        <i class="fa-solid fa-file-image"></i> {{localize "MULTISCENE.Intake.BrowseFiles"}}
+      </button>
+      <button type="button" data-action="browseFolder">
+        <i class="fa-solid fa-folder-open"></i> {{localize "MULTISCENE.Intake.BrowseFolder"}}
+      </button>
+    </div>
+  </div>
+
+  {{#if hasRows}}
+  <p class="ms-count">{{countLabel}}</p>
+  <ol class="ms-list">
+    {{#each rows}}
+    <li class="ms-row">
+      <div class="ms-preview">
+        {{#if isVideo}}
+        <video src="{{previewUrl}}#t=0.001" muted loop playsinline preload="metadata"></video>
+        {{else}}
+        <img src="{{previewUrl}}" alt="" loading="lazy" decoding="async">
+        {{/if}}
+      </div>
+      <div class="ms-fields">
+        <input type="text" class="ms-name" value="{{name}}" data-row-id="{{id}}"
+               placeholder="{{localize "MULTISCENE.Intake.NamePlaceholder"}}">
+        <span class="ms-path" title="{{path}}">{{path}}</span>
+      </div>
+      <button type="button" class="ms-remove" data-action="removeRow" data-row-id="{{id}}"
+              aria-label="{{localize "MULTISCENE.Intake.Remove"}}" data-tooltip="{{localize "MULTISCENE.Intake.Remove"}}">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </li>
+    {{/each}}
+  </ol>
+  {{/if}}
+</section>
