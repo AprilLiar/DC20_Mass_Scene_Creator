@@ -2,7 +2,7 @@
 
 A system-agnostic Foundry VTT module (v14 only) that creates many Scenes at once from dropped image/video files or folders.
 
-Status: design agreed, API research done against the official v14 docs, implementation not started. Section 5 lists the few things that can only be checked in a live Foundry v14 world.
+Status: implemented and released through GitHub Actions. Waiting for a manual test pass in Foundry v14 (see TESTING.md); section 5 lists what only a live world can confirm.
 
 ## 1. Decisions
 
@@ -16,47 +16,46 @@ Status: design agreed, API research done against the official v14 docs, implemen
 | License | MIT. Author in manifest: AprilLiar. |
 | Branch | Everything is committed directly to `main`. |
 | Releases | A new GitHub Release for every push to `main`, built by GitHub Actions (section 7). |
-| Tests | Unit tests with Node's built-in runner (`node --test`) for pure logic; UI is tested manually in Foundry. |
+| Tests | Unit tests with Node's built-in runner (`node --test`) for all logic that does not need a browser; the window is tested manually in Foundry (TESTING.md). |
 
-## 2. User-facing behavior
+## 2. User-facing behavior (as implemented)
 
 ### Entry point
-- A "Multi-Scene" button in the header of the Scenes sidebar tab, next to Create Scene / Create Folder. Shown only when `Scene.canUserCreate(game.user)` is true and the user can upload files (`FilePicker.canUpload`).
-- Opens a full-viewport application (covers the whole browser window, own title bar and Close button, not draggable or resizable).
-
-### Layout
-- Left 70%: drop zone and a vertical, scrollable list of rows.
-  - Row: large-ish preview on the left (image, or muted looping video), editable Scene name field on the right, remove (X) button.
-- Right 30%: options panel (section 3) and the Create button.
-- Empty state: a large drop target with a Browse files button and a Browse folder button (hidden `<input type="file" multiple>` and `<input type="file" webkitdirectory>`).
+- A "Multi-Scene" button in the header of the Scenes sidebar tab, placed after the built-in Create Scene button. Shown only when `Scene.canUserCreate(game.user)` and `game.user.can("FILES_UPLOAD")` are true.
+- Opens a full-viewport window with no Foundry frame: own title bar with a Close button, files on the left (70%), options on the right (30%).
 
 ### Intake
-- Accepts images and video; allowed extensions come from `CONST.IMAGE_FILE_EXTENSIONS` and `CONST.VIDEO_FILE_EXTENSIONS`.
-- Dropping a folder includes all sub-folders recursively (`DataTransferItem.webkitGetAsEntry()` traversal).
-- Dropping or browsing again appends to the list; it does not replace it.
-- Rows are sorted alphabetically by relative path.
-- Default Scene name ("prettified"): remove extension, turn `_` and `-` into spaces, collapse repeated spaces, trim. No change of letter case. Example: `Dark_Forest-01.webp` -> `Dark Forest 01`.
+- Drag and drop files or folders anywhere in the window, or use Browse files / Browse folder.
+- Accepts images and video (`CONST.IMAGE_FILE_EXTENSIONS`, `CONST.VIDEO_FILE_EXTENSIONS`). Folders are read recursively.
+- Hidden files and OS leftovers (`.DS_Store`, `Thumbs.db`, `desktop.ini`) are ignored silently; other unsupported files are skipped with one warning.
+- Each new batch is sorted by path (numbers compared as numbers: map2 before map10) and appended after the existing rows, so earlier edits never move. Exact repeats (same path, size and date) are skipped with a notice.
+- Default Scene name: file name without extension, `_` and `-` turned into spaces, spaces collapsed, case untouched.
+- Rows show a preview (images; videos show the first frame and play muted while hovered), an editable name, the source path and a remove button.
 
 ### Create
-1. Upload every file to `worlds/<world-id>/mass-scenes/` (Foundry `data` source). The folder is created if missing. If a file with the same name is already there, the upload is skipped and the existing file is reused.
-2. Build Scene data for each row, apply all options.
-3. Create Scenes in chunks so a progress bar can advance. A failed row does not stop the others.
-4. Success: dialog closes and a notification reports how many Scenes were created. If anything failed, the dialog stays open with a list of failed rows and reasons (progress and error report).
-- Duplicate Scene names are allowed (Foundry allows them).
-- Last-used option values are saved per user (client setting) and restored on next open; first use falls back to the defaults below.
+1. Checks: at least one row; a name when "New folder..." is chosen.
+2. Upload folder `worlds/<world-id>/mass-scenes/` is created if missing.
+3. For each row, one after another: read the size (and color) of the picture, upload the file unless the same content is already on the server, create the Scene. A failing row is recorded and the others carry on.
+4. File names on the server are the cleaned original name plus the first 8 characters of the SHA-256 of the content: `Dark_Forest_01-3fa9c1d2.png`. The same content is never uploaded twice, and different files with the same name never clash.
+5. All controls are locked while running; progress is shown. Closing the window stops the run before the next row.
+6. Success: the window closes and a notification shows the count. With failures: created rows leave the list, failed rows stay with a failure report so Create can be pressed again.
+- Option values are saved per user (client setting `lastOptions`) and restored on the next open.
 
 ## 3. Options panel
 
-Options are defined in a registry so more can be added later without touching the dialog code. Each option is one file in `scripts/options/` exporting: `id`, `label`/`hint` (lang keys), `type` (`boolean`, `select`, `number`), `default`, and `apply(sceneData, context)` (may be async; `context` holds the row, the image/video element and its natural size). Adding an option = new file + one line in the registry + lang strings.
+Options are registered in `scripts/options/index.mjs`; adding one means a new file there, one registry line and lang strings. The panel, saving, validation and Scene data all follow from the registry.
 
 | Option | Type | Default | Effect on each created Scene |
 | --- | --- | --- | --- |
-| Disable Vision? | boolean | on | `tokenVision = false`. Nothing else changed (fog exploration untouched). |
+| Disable Vision? | boolean | on | `tokenVision = false`. Nothing else changed. |
 | Disable Grid? | boolean | on | `grid.type = CONST.GRID_TYPES.GRIDLESS` (0). |
-| Set Background color automatically? | boolean | on | `backgroundColor` = most frequent color of the picture. Image is shrunk (e.g. to 64 px on the long side), pixels grouped into color buckets, the most populated bucket wins (bucket average used as the result). Videos: first frame. Off = Foundry's default color. |
-| Scene Transition | select | Wind | `transition.type` set to the chosen type. Duration and `activeOnly` stay at Foundry defaults. The list of types is built from `CONFIG.Canvas.sceneTransitions`; if Wind is not found the dropdown falls back to Foundry's default and shows a warning. |
-| Padding | number (percent) | 0 | Scene `padding`. Default value is a proposal, see section 8. |
-| Scene folder | select | none | Folder of the created Scenes: none, any existing Scene folder, or "create new folder". |
+| Set Background color automatically? | boolean | on | `backgroundColor` = most frequent color of the picture (shrunk to 64 px, 16 buckets per channel, average of the winning bucket; first frame for video). A color that cannot be read leaves Foundry's default. |
+| Scene Transition | select | Wind | `transition.type` from `CONFIG.Canvas.sceneTransitions`. Falls back to Foundry's default with a warning if Wind is missing. |
+| Padding (%) | number 0-50 | 0 | `padding` as a fraction. Always written, so 0 overrides Foundry's 25% default. |
+| Scene folder | folder | none | `folder` = existing Scene folder, or a new one created first. |
+| Show in navigation bar? | boolean | off | `navigation` written explicitly, so batch-created Scenes stay out of the top bar by default. |
+
+Every Scene also gets `name`, `levels: [{ background: { src } }]`, and `width` / `height` from the picture's pixel size.
 
 ## 4. Foundry v14 research notes (verified against the official v14 API docs)
 
@@ -98,36 +97,44 @@ ApplicationV2 window options (`ApplicationConfiguration`, `ApplicationWindowConf
 
 ## 5. Still unverified (needs a live v14 world; the API docs do not cover these)
 
-1. DOM of the Scenes tab header (core template, not in the API docs). The button is placed robustly: find the `[data-action="createEntry"]` button inside `element` and insert after it; fall back to the `header` part; skip if the button already exists (the hook fires on every re-render).
-2. Exact shape of the `FilePicker.upload` response (expected to contain the final `path`; if missing, the path is built from folder + file name).
-3. Whether `Scene.createDocuments` with `levels: [{ background: { src } }]` also needs explicit top-level `width`/`height` (plan: always pass them from the image's natural size) and whether core generates the thumbnail itself (fallback: call `createThumbnail` and update `thumb`).
-4. Which color the Scene configuration actually shows as "Background Color" now: `Scene.backgroundColor` (string) or the Level's `background.color` (number). Plan: set `backgroundColor`, then check in Foundry; adjust if needed.
-5. The internal id of the "Wind" transition (found at runtime, see above).
-6. `window.positioned = false` behavior with a fixed-position full-viewport layout.
+These are covered step by step in [TESTING.md](TESTING.md). In short:
 
-Everything else in this plan is verified or independent of Foundry internals.
+1. DOM of the Scenes tab header. The button is inserted after `[data-action="createEntry"]`, falling back to the header and then the top of the tab.
+2. Exact shape of the `FilePicker.upload` response (the code uses `response.path`, and builds the path from folder and name if it is missing).
+3. Whether `Scene.create` with `levels: [{ background: { src } }]` plus explicit `width` / `height` produces a correct Scene, and whether Foundry makes the thumbnail itself (the code fills it in when missing).
+4. Whether the "Background Color" shown in the Scene configuration is `Scene.backgroundColor` (set by this module) or the Level's own background color.
+5. The internal id of the "Wind" transition (looked up at runtime by id or label).
+6. Frameless window behavior: `window.positioned = false` with CSS `position: fixed`, stacking above other windows via `bringToFront()`, and the `render({ parts })` option.
+
+The mock-Foundry browser checks used during development only prove the module's own logic; they cannot prove the points above.
 
 ## 6. File layout
 
 ```
-module.json
-LICENSE
-README.md
-PLAN.md
+module.json                      manifest (version, manifest and download URLs are rewritten by the release workflow)
+LICENSE  README.md  PLAN.md  TESTING.md  package.json
 lang/en.json
-scripts/main.mjs                 hooks, settings registration, button injection
-scripts/multi-scene-app.mjs      ApplicationV2 window (rows, panel, progress)
-scripts/file-intake.mjs          drop/browse -> entries, recursion, type filter, sort
-scripts/uploader.mjs             target folder creation, upload, reuse existing files
-scripts/scene-builder.mjs        row + options -> Scene data -> createDocuments in chunks
-scripts/names.mjs                prettify file name (pure)
-scripts/color.mjs                dominant color from pixel data (pure) + canvas sampling helper
-scripts/options/index.mjs        option registry
-scripts/options/*.mjs            one file per option
-templates/multi-scene.hbs
 styles/multi-scene.css
-tests/*.test.mjs                 node --test: names, color, option apply, manifest sanity
-.github/workflows/release.yml
+templates/titlebar.hbs main.hbs options.hbs     the three parts of the window
+scripts/main.mjs                 init: settings, renderSceneDirectory hook
+scripts/scene-directory.mjs      the hook: builds the button
+scripts/button-placement.mjs     where the button goes (pure)
+scripts/multi-scene-app.mjs      the window: state, events, actions
+scripts/file-intake.mjs          drop/browse -> { file, path } items, folder recursion (pure)
+scripts/media-types.mjs          extensions, accept attribute, ignored files (pure)
+scripts/rows.mjs                 add items to the list, sort, skip repeats (pure)
+scripts/names.mjs                prettify file names (pure)
+scripts/color.mjs                dominant color (pure) + canvas sampling helper
+scripts/option-fields.mjs        option values -> template fields (pure)
+scripts/settings.mjs             per-user saved option values
+scripts/options/*.mjs            one file per option + index.mjs registry
+scripts/uploader.mjs             hashed file names, upload folder (takes Foundry's FilePicker as a parameter)
+scripts/media-loader.mjs         opens an image/video to read size and a frame (browser)
+scripts/scene-builder.mjs        the create loop (takes all Foundry calls as parameters)
+scripts/foundry-deps.mjs         the real Foundry calls behind the create loop
+tests/*.test.mjs                 node --test: everything that does not need a browser
+.github/workflows/release.yml    test, bump patch version, zip, tag, publish a Release
+.github/scripts/                 version bump helpers used by the workflow
 ```
 
 ## 7. Release process
@@ -150,19 +157,21 @@ Notes:
 
 ## 8. Defaults chosen without asking (veto welcome)
 
-- Padding option: number field in percent, default 0.
-- Button visible only to users who can create Scenes.
-- Video previews are muted, looping `<video>` elements.
-- File reuse is by name only (same name in the upload folder is considered the same file).
-- "Create new folder" lets the user type a folder name inline in the panel.
-- If the world folder is not writable (for example some hosted setups), the run fails with a clear error; no alternative storage is designed.
+- Padding option: number field in percent, 0 to 50, default 0.
+- The button is visible only to users who can create Scenes and upload files.
+- New batches are appended after existing rows; exact repeats are skipped.
+- Video previews show the first frame and play muted only while hovered (a long list of autoplaying videos would be too heavy).
+- Scenes are created one at a time (not in chunks) so each failure is reported for its own row.
+- Every created Scene gets one Level named by Foundry's defaults; the Level is not given a name.
+- If the world folder is not writable (for example some hosted setups), the run stops with one clear error; no alternative storage is designed.
+- Per-user saved option values: "New folder..." is saved as "no folder"; a saved folder or transition that no longer exists falls back to the default.
 
-## 9. Implementation order
+## 9. Implementation order (all done)
 
-1. Repo scaffolding: `module.json`, `LICENSE`, `README.md`, `lang/en.json`, release workflow, empty test.
-2. Pure logic with tests: `names.mjs`, `color.mjs`, option registry and option `apply` functions.
-3. Button injection and an empty full-viewport window.
-4. File intake (drop, browse, folder recursion) and the row list with previews.
-5. Options panel, persisted values.
-6. Uploader and Scene builder, progress and error report.
-7. Manual test pass in Foundry v14 by the user; fix; set `verified`.
+1. Repo scaffolding, manifest, license, release workflow, manifest tests. Done.
+2. Pure logic with tests: names, color, option registry. Done.
+3. Scenes tab button and the full-viewport window. Done.
+4. File intake and the row list with previews. Done.
+5. Options panel with saved values. Done.
+6. Uploader, Scene builder, progress and failure report. Done.
+7. Test checklist for Foundry v14 ([TESTING.md](TESTING.md)). Done. Pending: the manual pass by the user, then set `compatibility.verified` in `module.json` to the build that was tested.

@@ -4,7 +4,14 @@ A system-agnostic module for Foundry VTT v14 that creates many Scenes at once.
 
 Adds a **Multi-Scene** button to the Scenes tab. It opens a full-screen window where you drop image or video files (or a whole folder), edit the future Scene names, choose a few options, and create all Scenes in one go.
 
-Status: under development. See [PLAN.md](PLAN.md) for the design and the implementation order.
+## Usage
+
+1. Open the Scenes tab and click **Multi-Scene**.
+2. Drop images, videos or a whole folder into the window (or use Browse files / Browse folder). Each file becomes a row; edit the Scene name next to its preview.
+3. Choose options on the right: Disable Vision, Disable Grid, automatic background color, Scene Transition, padding, Scene folder, and whether the Scenes show in the navigation bar.
+4. Click **Create Scenes**. Files are uploaded to `worlds/<world>/mass-scenes/` and one Scene is created per row.
+
+Status: implemented, waiting for a manual test pass in Foundry v14 ([TESTING.md](TESTING.md)). See [PLAN.md](PLAN.md) for the design.
 
 ## Install
 
